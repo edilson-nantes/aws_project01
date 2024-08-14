@@ -1,0 +1,63 @@
+buildscript {
+	ext {
+		springBootVersion = '3.2.9-SNAPSHOT'
+	}
+	repositories {
+		mavenCentral()
+		gradlePluginPortal()
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath('gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.22.1')
+	}
+}
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.9-SNAPSHOT'
+	id 'io.spring.dependency-management' version '1.1.6'
+	id 'com.palantir.docker' version '0.22.1'
+}
+
+group = 'edilsonantes'
+version = '0.0.1-SNAPSHOT'
+
+
+bootJar{
+	baseName = 'curso_aws_project01'
+	version = '1.0.0'
+}
+
+tasks.register('unpack', Copy) {
+	dependsOn bootJar
+	from(zipTree(tasks.bootJar.outputs.files.singleFile))
+	into("build/dependency")
+}
+
+docker {
+	name "${project.group}/${project.name}"
+	tags "${bootJar.version}"
+	copySpec.from(tasks.unpack.outputs).into('dependency')
+	buildArgs(['DEPENDENCY' : "dependency"])
+}
+
+repositories {
+	mavenCentral()
+	gradlePluginPortal()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
